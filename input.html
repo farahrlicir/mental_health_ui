@@ -66,15 +66,25 @@
         resultText.textContent = "Please enter some text.";
         precisionText.textContent = "";
       } else {
-        // Simulate prediction (replace with real API call)
-        const prediction = "None";  // Example prediction
-        const precision = 92;  // Example precision (in percentage)
-
-        resultText.textContent = `Predicted Class: ${prediction}`;
-        precisionText.textContent = `Prediction Confidence: ${precision}%`;
+        // API call to Flask backend
+        fetch('http://localhost:5000/predict', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({ text: input })
+        })
+        .then(response => response.json())
+        .then(data => {
+          resultText.textContent = data.prediction;
+          precisionText.textContent = data.confidence;
+          outputSection.classList.remove('hidden');
+        })
+        .catch(error => {
+          resultText.textContent = "Error: " + error.message;
+          precisionText.textContent = "";
+        });
       }
-
-      outputSection.classList.remove('hidden');
     });
   </script>
 </body>
