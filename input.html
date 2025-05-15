@@ -1,91 +1,43 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <link rel="stylesheet" href="style.css" />
-  <script src="https://cdn.tailwindcss.com"></script>
-  <title>Mental Health Input</title>
-</head>
-<body class="bg-[#FFF9F3] text-gray-800 font-sans">
-  
-  <!-- Header -->
-  <header class="flex items-center justify-between px-6 py-4 border-b border-gray-200 shadow-sm bg-white">
-    <div class="flex items-center space-x-3">
-      <img src="mental-health (1).png" alt="Logo" class="w-8 h-8"/>
-      <h1 class="text-xl font-bold text-[#B57EDC]">ClassiHealth</h1>
-    </div>
-    <a href="index.html" class="text-sm font-semibold text-[#FFA14A] hover:underline">← Back to Home</a>
-  </header>
+<script>
+  const form = document.getElementById('prediction-form');
+  const outputSection = document.getElementById('output-section');
+  const resultText = document.getElementById('prediction-result');
+  const precisionText = document.getElementById('prediction-precision');
 
-  <!-- Main -->
-  <main class="max-w-3xl mx-auto px-4 py-10">
-    <h2 class="text-2xl font-bold mb-4 text-center">Enter Your Text to Predict</h2>
-    <form id="prediction-form" class="space-y-6">
-      <textarea 
-        id="user-input" 
-        placeholder="Describe your mental state, feelings, or symptoms here..." 
-        class="w-full h-40 p-4 border border-gray-300 rounded-lg focus:ring-[#B57EDC] focus:outline-none resize-none text-gray-700"
-      ></textarea>
+  form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const input = document.getElementById('user-input').value.trim();
 
-      <div class="text-center">
-        <button 
-          type="submit" 
-          class="bg-[#FFE5C8] text-[#B57EDC] px-6 py-2 font-bold rounded-lg border border-[#B57EDC] hover:bg-[#FFD29E]">
-          Predict
-        </button>
-      </div>
-    </form>
+    if (!input) {
+      resultText.textContent = "Please enter some text.";
+      precisionText.textContent = "";
+      outputSection.classList.remove('hidden');
+      return;
+    }
 
-    <!-- Output Section -->
-    <section id="output-section" class="mt-10 hidden">
-      <h3 class="text-xl font-semibold mb-3 text-[#B57EDC]">Prediction Result</h3>
-      <div class="bg-white p-4 rounded-lg border border-[#B57EDC] shadow-sm">
-        <p id="prediction-result" class="text-gray-800 font-medium">...</p>
-        <div id="prediction-precision" class="mt-4 text-[#FFA14A] font-semibold text-lg"></div>
-      </div>
-    </section>
-  </main>
+    try {
+      const response = await fetch('http://127.0.0.1:5000/predict', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ text: input })
+      });
 
-  <!-- Optional Footer -->
-  <footer class="text-center text-sm text-gray-500 mt-10 px-4">
-    Disclaimer: This tool is informational and does not replace professional advice.
-  </footer>
+      if (!response.ok) throw new Error(`Server error: ${response.status}`);
 
-  <script>
-    const form = document.getElementById('prediction-form');
-    const outputSection = document.getElementById('output-section');
-    const resultText = document.getElementById('prediction-result');
-    const precisionText = document.getElementById('prediction-precision');
+      const data = await response.json();
 
-    form.addEventListener('submit', (e) => {
-      e.preventDefault();
-      const input = document.getElementById('user-input').value.trim();
-
-      if (!input) {
-        resultText.textContent = "Please enter some text.";
-        precisionText.textContent = "";
-      } else {
-        // API call to Flask backend
-        fetch('http://localhost:5000/predict', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify({ text: input })
-        })
-        .then(response => response.json())
-        .then(data => {
-          resultText.textContent = data.prediction;
-          precisionText.textContent = data.confidence;
-          outputSection.classList.remove('hidden');
-        })
-        .catch(error => {
-          resultText.textContent = "Error: " + error.message;
-          precisionText.textContent = "";
-        });
-      }
-    });
-  </script>
-</body>
-</html>
+      resultText.textContent = `Predicted Class: ${data.predicted_class_name}`;
+      
+      // Show the highest probability as confidence (rounded)
+      const maxProb = Math.max(...data.probabilities[0]);
+      precisionText.textContent = `Prediction Confidence: ${(maxProb * 100).toFixed(2)}%`;
+      
+      outputSection.classList.remove('hidden');
+    } catch (error) {
+      console.error(error);
+      resultText.textContent = "Error contacting the prediction server.";
+      precisionText.textContent = "";
+      outputSection.classList.remove('hidden');
+    }
+  });
+</script>
